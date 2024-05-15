@@ -7,10 +7,10 @@ class material;
 
 struct hit_record
 {
-    float t;
-    vec3 p;
-    vec3 normal;
-    material *mat_ptr;
+    float t;//hit time
+    vec3 p;//hit point
+    vec3 normal;//normal at hit point
+    material *mat_ptr;//material of the hit object
 };
 
 class hitable  {

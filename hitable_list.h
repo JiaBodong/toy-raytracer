@@ -3,6 +3,7 @@
 
 #include "hitable.h"
 
+//multiple objects hitable list
 class hitable_list: public hitable  {
     public:
         hitable_list() {}

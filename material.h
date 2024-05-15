@@ -7,32 +7,32 @@
 
 struct hit_record;
 
-
+//schlick approximation, computes reflectivity
 float schlick(float cosine, float ref_idx) {
     float r0 = (1-ref_idx) / (1+ref_idx);
     r0 = r0*r0;
     return r0 + (1-r0)*pow((1 - cosine),5);
 }
 
-
+//refraction function
 bool refract(const vec3& v, const vec3& n, float ni_over_nt, vec3& refracted) {
     vec3 uv = unit_vector(v);
     float dt = dot(uv, n);
     float discriminant = 1.0 - ni_over_nt*ni_over_nt*(1-dt*dt);
     if (discriminant > 0) {
-        refracted = ni_over_nt*(uv - n*dt) - n*sqrt(discriminant);
+        refracted = ni_over_nt*(uv - n*dt) - n*sqrt(discriminant);//according to Snell's law, refracted = ni_over_nt*(uv - n*dt) - n*sqrt(discriminant)
         return true;
     }
     else
         return false;
 }
 
-
+//return direction of reflection
 vec3 reflect(const vec3& v, const vec3& n) {
      return v - 2*dot(v,n)*n;
 }
 
-
+//return a random point in unit sphere, used for diffuse reflection
 vec3 random_in_unit_sphere() {
     vec3 p;
     do {
@@ -41,16 +41,18 @@ vec3 random_in_unit_sphere() {
     return p;
 }
 
-
+//Base class for materials
 class material  {
     public:
+        //scatter according to material properties
         virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) const = 0;
 };
 
-
+//Lambertian material
 class lambertian : public material {
     public:
         lambertian(const vec3& a) : albedo(a) {}
+        //scatter according to Lambertian reflection
         virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) const  {
              vec3 target = rec.p + rec.normal + random_in_unit_sphere();
              scattered = ray(rec.p, target-rec.p);
@@ -58,13 +60,14 @@ class lambertian : public material {
              return true;
         }
 
-        vec3 albedo;
+        vec3 albedo;//diffuse reflection coefficient
 };
 
-
+//For metal materials
 class metal : public material {
     public:
         metal(const vec3& a, float f) : albedo(a) { if (f < 1) fuzz = f; else fuzz = 1; }
+        //scatter according to metal reflection
         virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) const  {
             vec3 reflected = reflect(unit_vector(r_in.direction()), rec.normal);
             scattered = ray(rec.p, reflected + fuzz*random_in_unit_sphere());
@@ -72,10 +75,10 @@ class metal : public material {
             return (dot(scattered.direction(), rec.normal) > 0);
         }
         vec3 albedo;
-        float fuzz;
+        float fuzz;//fuzziness factor, 0 for perfect reflection, 1 for maximum fuzziness
 };
 
-
+//For dielectric materials, like glass
 class dielectric : public material {
     public:
         dielectric(float ri) : ref_idx(ri) {}
