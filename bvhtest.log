@@ -1,4 +1,16 @@
-With 603 objects, motion blur
+With 600 little objects, size=0.2, 3 big objects.  activate motion blur
 
-1. plane hitable_list, 200s
+1. plane hitable_list, 120s
 2. with basic bvh, 34s
+3. with sah bvh, 50s
+
+With 600 little objects, size=0.5, 3 big objects.  activate motion blur
+
+1. plane hitable_list, 180s
+2. with basic bvh, 52s
+3. with sah bvh, 70s
+
+With 600 little objects, size=0.5, 3 big objects.  activate motion blur. resolution 960x540
+
+1. with sah bvh, 160s
+2. with basic bvh, 120s

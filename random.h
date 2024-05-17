@@ -13,7 +13,7 @@ inline double random_double(double min, double max) {
     return min + (max-min)*random_double();
 }
 
-inline uint32_t morton_code(vec3& p){
+inline unsigned int morton_code(vec3& p){
     // Morton code is a way to split 3D space into 1D space
     auto splitBy3 = [](unsigned int a) {
         a = (a | (a << 16)) & 0x030000FF;

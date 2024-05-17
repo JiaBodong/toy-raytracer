@@ -3,6 +3,7 @@
 
 #include "hitable.h"
 #include "hitable_list.h"
+#include "random.h"
 #include <algorithm>
 #include <vector>
 //bounding volume hierarchy, based on the hitable_list
@@ -10,7 +11,10 @@ class bvh_node : public hitable {
     public:
         bvh_node() {}
         bvh_node(hitable **l, int n, float time0, float time1){
+            //randomly choose an axis to sort the objects
             auto object_list = l;
+    
+            //basic bvh sorting
             int axis = int(3*drand48());
             if (axis == 0)
                 std::sort(object_list, object_list + n, box_x_compare);
@@ -18,6 +22,7 @@ class bvh_node : public hitable {
                 std::sort(object_list, object_list + n, box_y_compare);
             else
                 std::sort(object_list, object_list + n, box_z_compare);
+            //recursively construct the bounding volume hierarchy
             if (n == 1) {
                 left = right = object_list[0];
             } else if (n == 2) {
@@ -39,7 +44,7 @@ class bvh_node : public hitable {
         hitable *left;//not tratitional left and right, can be any two other nodes
         hitable *right;
         aabb box;
-
+        //compare helper, sort the objects based on the bounding box, x, y, or z
         static bool box_x_compare(const hitable *a, const hitable *b) {
             aabb box_left, box_right;
             if (!a->bounding_box(0, 0, box_left) || !b->bounding_box(0, 0, box_right))

@@ -8,6 +8,7 @@
 #include "random.h"
 #include "aabb.h"
 #include "bvh.h"
+#include "sah.h"
 
 
 vec3 color(const ray& r, hitable *world, int depth) {
@@ -51,14 +52,14 @@ hitable *random_scene() {
                     //dynamic sphere
                     auto center1 = center + vec3(0, random_double(0,.5), 0);
                     list[i++] = new dynamic_sphere(
-                       center, center1, 0.0, 1.0, 0.2, new lambertian(vec3(random_double()*random_double(),
+                       center, center1, 0.0, 1.0, 0.5, new lambertian(vec3(random_double()*random_double(),
                                             random_double()*random_double(),
                                             random_double()*random_double()))
                     );
                 }
                 else if (choose_mat < 0.95) { // metal
                     list[i++] = new sphere(
-                        center, 0.2,
+                        center, 0.5,
                         new metal(vec3(0.5*(1 + random_double()),
                                        0.5*(1 + random_double()),
                                        0.5*(1 + random_double())),
@@ -66,7 +67,7 @@ hitable *random_scene() {
                     );
                 }
                 else {  // glass
-                    list[i++] = new sphere(center, 0.2, new dielectric(1.5));
+                    list[i++] = new sphere(center, 0.5, new dielectric(1.5));
                 }
             }
         }
@@ -78,15 +79,16 @@ hitable *random_scene() {
 
     //construct the bounding volume hierarchy
     return new bvh_node(list, i, 0.0, 1.0);
-
+    // return new sah_node(list, i, 0.0, 1.0);
     // return new hitable_list(list,i);
+
 }
 
 
 int main() {
     //image size
-    int nx = 640;
-    int ny = 360;
+    int nx = 960;
+    int ny = 540;
     int ns = 10;//number of samples per pixel
     std::cout << "P3\n" << nx << " " << ny << "\n255\n";
     hitable *world = random_scene();

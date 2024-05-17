@@ -27,7 +27,7 @@ class aabb {
             //if the loop finishes without returning false, the ray hits the bounding box, return true
             return true;
         }
-        //merge two bounding boxes to one
+        //merge two bounding boxes
         aabb merge_box(aabb box0, aabb box1) {
             vec3 small(fmin(box0.min().x(), box1.min().x()),
                         fmin(box0.min().y(), box1.min().y()),
@@ -38,6 +38,13 @@ class aabb {
             return aabb(small, big);
         }
 
+        vec3 center() const { return 0.5f * (_min + _max); }
+
+        float area() const {
+            vec3 d = _max - _min;
+            return 2.0f * (d.x() * d.y() + d.x() * d.z() + d.y() * d.z());
+        }
+    private:
         vec3 _min;
         vec3 _max;
 };
