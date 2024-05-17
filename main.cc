@@ -6,11 +6,13 @@
 #include "camera.h"
 #include "material.h"
 #include "random.h"
+#include "aabb.h"
+#include "bvh.h"
 
 
 vec3 color(const ray& r, hitable *world, int depth) {
     hit_record rec;
-    if (world->hit(r, 0.001, MAXFLOAT, rec)) {//if the ray hits an object, scatter it
+    if (world->hit(r, 0.001, MAXFLOAT, rec)) {
         ray scattered;
         vec3 attenuation;
         //compute color according to the material properties
@@ -74,7 +76,10 @@ hitable *random_scene() {
     list[i++] = new sphere(vec3(-8, 1, 0), 1.0, new lambertian(vec3(0.2, 0.1, 0.1)));//diffuse big sphere
     list[i++] = new sphere(vec3(4, 1, 0), 1.0, new metal(vec3(0.7, 0.6, 0.5), 0.3));//metal big sphere
 
-    return new hitable_list(list,i);
+    //construct the bounding volume hierarchy
+    return new bvh_node(list, i, 0.0, 1.0);
+
+    // return new hitable_list(list,i);
 }
 
 

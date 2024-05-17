@@ -1,0 +1,4 @@
+With 603 objects, motion blur
+
+1. plane hitable_list, 200s
+2. with basic bvh, 34s
