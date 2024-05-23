@@ -4,6 +4,7 @@
 #include "ray.h"
 #include "hitable.h"
 #include "random.h"
+#include "texture.h"
 
 struct hit_record;
 
@@ -52,16 +53,20 @@ class material  {
 //Lambertian material
 class lambertian : public material {
     public:
-        lambertian(const vec3& a) : albedo(a) {}
+        //with texture pointer
+        lambertian(const vec3& a) : albedo(new solid_color(a)) {}
+        lambertian(texture *a) : albedo(a) {}
         //scatter according to Lambertian reflection
         virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) const  {
              vec3 target = rec.p + rec.normal + random_in_unit_sphere();
              scattered = ray(rec.p, target-rec.p, r_in.time());
-             attenuation = albedo;//always scatter with the same albedo, for easy implementation
+             //attenuation = albedo;//always scatter with the same albedo, for easy implementation
+             attenuation = albedo->value(rec.u, rec.v, rec.p);
              return true;
         }
 
-        vec3 albedo;//diffuse reflection coefficient
+        //diffuse reflection coefficient
+        texture *albedo;
 };
 
 //For metal materials

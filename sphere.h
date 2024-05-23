@@ -2,7 +2,7 @@
 #define SPHEREH
 
 #include "hitable.h"
-
+#include <cmath>
 
 class sphere: public hitable  {
     public:
@@ -13,6 +13,13 @@ class sphere: public hitable  {
         vec3 center;
         float radius;
         material *mat_ptr;
+
+        static void get_sphere_uv(const vec3& p, float& u, float& v) {//function to get the uv coordinates of a point on the sphere
+            float phi = atan2(p.z(), p.x());
+            float theta = asin(p.y());
+            u = 1 - (phi + M_PI) / (2*M_PI);
+            v = (theta + M_PI/2) / M_PI;
+        }
 };
 
 //ray-sphere intersection
@@ -31,6 +38,7 @@ bool sphere::hit(const ray& r, float t_min, float t_max, hit_record& rec) const 
             rec.t = temp;//update hit time
             rec.p = r.point_at_parameter(rec.t);//update hit point
             rec.normal = (rec.p - center) / radius;//update normal direction
+            sphere::get_sphere_uv(rec.normal, rec.u, rec.v);//get uv coordinates
             rec.mat_ptr = mat_ptr;//tell this point's material
             return true;
         }
@@ -40,6 +48,7 @@ bool sphere::hit(const ray& r, float t_min, float t_max, hit_record& rec) const 
             rec.t = temp;
             rec.p = r.point_at_parameter(rec.t);
             rec.normal = (rec.p - center) / radius;
+            sphere::get_sphere_uv(rec.normal, rec.u, rec.v);
             rec.mat_ptr = mat_ptr;
             return true;
         }

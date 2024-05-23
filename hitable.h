@@ -8,6 +8,7 @@ class material;
 struct hit_record
 {
     float t;//hit time
+    float u, v;//texture coordinates
     vec3 p;//hit point
     vec3 normal;//normal at hit point
     material *mat_ptr;//material of the hit object

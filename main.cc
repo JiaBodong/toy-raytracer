@@ -35,7 +35,11 @@ vec3 color(const ray& r, hitable *world, int depth) {
 hitable *random_scene() {
     int n = 600;
     hitable **list = new hitable*[n+1];
-    list[0] =  new sphere(vec3(0,-1000,0), 1000, new lambertian(vec3(0.5, 0.5, 0.5)));
+
+    auto checker = new checker_texture(new solid_color(vec3(0.2, 0.3, 0.1)), new solid_color(vec3(0.9, 0.9, 0.9)));
+    list[0] =  new sphere(vec3(0,-1000,0), 1000, new lambertian(checker));
+    // list[0] =  new sphere(vec3(0,-1000,0), 1000, new lambertian(vec3(0.5, 0.5, 0.5)));
+
     int i = 1;
     for (int a = -11; a < 11; a++) {
         for (int b = -11; b < 11; b++) {
@@ -52,14 +56,14 @@ hitable *random_scene() {
                     //dynamic sphere
                     auto center1 = center + vec3(0, random_double(0,.5), 0);
                     list[i++] = new dynamic_sphere(
-                       center, center1, 0.0, 1.0, 0.5, new lambertian(vec3(random_double()*random_double(),
+                       center, center1, 0.0, 1.0, 0.3, new lambertian(vec3(random_double()*random_double(),
                                             random_double()*random_double(),
                                             random_double()*random_double()))
                     );
                 }
                 else if (choose_mat < 0.95) { // metal
                     list[i++] = new sphere(
-                        center, 0.5,
+                        center, 0.3,
                         new metal(vec3(0.5*(1 + random_double()),
                                        0.5*(1 + random_double()),
                                        0.5*(1 + random_double())),
@@ -67,14 +71,17 @@ hitable *random_scene() {
                     );
                 }
                 else {  // glass
-                    list[i++] = new sphere(center, 0.5, new dielectric(1.5));
+                    list[i++] = new sphere(center, 0.3, new dielectric(1.5));
                 }
             }
         }
     }
 
     list[i++] = new sphere(vec3(-1, 1, 0), 1.0, new dielectric(1.5));//glass big sphere
-    list[i++] = new sphere(vec3(-8, 1, 0), 1.0, new lambertian(vec3(0.2, 0.1, 0.1)));//diffuse big sphere
+    // list[i++] = new sphere(vec3(-8, 1, 0), 1.0, new lambertian(vec3(0.2, 0.1, 0.1)));//diffuse big sphere
+    auto moon_texture = new image_texture("external/moon.jpg");
+    auto moon_surface = new lambertian(moon_texture);
+    list[i++] = new sphere(vec3(-8, 1, 0), 1.0, moon_surface);//moon big sphere
     list[i++] = new sphere(vec3(4, 1, 0), 1.0, new metal(vec3(0.7, 0.6, 0.5), 0.3));//metal big sphere
 
     //construct the bounding volume hierarchy
@@ -91,11 +98,13 @@ int main() {
     int ny = 540;
     int ns = 10;//number of samples per pixel
     std::cout << "P3\n" << nx << " " << ny << "\n255\n";
+
     hitable *world = random_scene();
+
     //view point
-    vec3 lookfrom(13,2,3);
+    vec3 lookfrom(11,2,3);
     vec3 lookat(0,0,0);
-    float dist_to_focus = 20.0;//for depth of field
+    float dist_to_focus = 15.0;//for depth of field
     float aperture = 0.1;
 
     camera cam(lookfrom, lookat, vec3(0,1,0), 20, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0);
