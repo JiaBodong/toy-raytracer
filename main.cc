@@ -1,5 +1,6 @@
 #include <iostream>
 #include "sphere.h"
+#include "rect.h"
 #include "dynamic_sphere.h"
 #include "hitable_list.h"
 #include "float.h"
@@ -11,23 +12,19 @@
 #include "sah.h"
 
 
-vec3 color(const ray& r, hitable *world, int depth) {
+vec3 color(const ray& r,const vec3& background, hitable *world, int depth) {
     hit_record rec;
-    if (world->hit(r, 0.001, MAXFLOAT, rec)) {
+    if (world->hit(r, 0.001, FLT_MAX, rec)) {
         ray scattered;
         vec3 attenuation;
-        //compute color according to the material properties
+        vec3 emitted = rec.mat_ptr->emitted(rec.u, rec.v, rec.p);
         if (depth < 50 && rec.mat_ptr->scatter(r, rec, attenuation, scattered)) {
-             return attenuation*color(scattered, world, depth+1);
+            return emitted + attenuation*color(scattered, background, world, depth+1);
+        } else {
+            return emitted;
         }
-        else {//if the ray is scattered too many times, return black
-            return vec3(0,0,0);
-        }
-    }
-    else {//if the ray does not hit an object, return the background color
-        vec3 unit_direction = unit_vector(r.direction());
-        float t = 0.5*(unit_direction.y() + 1.0);
-        return (1.0-t)*vec3(1.0, 1.0, 1.0) + t*vec3(0.5, 0.7, 1.0);
+    } else {
+        return background;
     }
 }
 
@@ -84,6 +81,13 @@ hitable *random_scene() {
     list[i++] = new sphere(vec3(-8, 1, 0), 1.0, moon_surface);//moon big sphere
     list[i++] = new sphere(vec3(4, 1, 0), 1.0, new metal(vec3(0.7, 0.6, 0.5), 0.3));//metal big sphere
 
+
+    //add light
+    auto diffuse_light = new light(new solid_color(vec3(4,4,4)));
+    auto light = new xz_rect(0,2, 0, 2, 2, diffuse_light);
+    list[i++] = light;
+
+
     //construct the bounding volume hierarchy
     return new bvh_node(list, i, 0.0, 1.0);
     // return new sah_node(list, i, 0.0, 1.0);
@@ -91,15 +95,39 @@ hitable *random_scene() {
 
 }
 
+hitable *cornell_box() {
+    hitable **list = new hitable*[8];
+    int i = 0;
+    material *red = new lambertian(new solid_color(vec3(0.65, 0.05, 0.05)));
+    material *white = new lambertian(new solid_color(vec3(0.73, 0.73, 0.73)));
+    material *green = new lambertian(new solid_color(vec3(0.12, 0.45, 0.15)));
+    material *light = new light(new solid_color(vec3(15, 15, 15)));
+
+    list[i++] = new yz_rect(0, 555, 0, 555, 555, green);
+    list[i++] = new yz_rect(0, 555, 0, 555, 0, red);
+    list[i++] = new xz_rect(213, 343, 227, 332, 554, light);
+    list[i++] = new xz_rect(0, 555, 0, 555, 0, white);
+    list[i++] = new xz_rect(0, 555, 0, 555, 555, white);
+    list[i++] = new xy_rect(0, 555, 0, 555, 555, white);
+
+    list[i++] = new box(vec3(130, 0, 65), vec3(295, 165, 230), white);
+    list[i++] = new box(vec3(265, 0, 295), vec3(430, 330, 460), white);
+
+    return new bvh_node(list, i, 0.0, 1.0);
+}
+
+
+
 
 int main() {
-    //image size
+   
     int nx = 960;
     int ny = 540;
-    int ns = 10;//number of samples per pixel
+    int ns = 100;//number of samples per pixel
     std::cout << "P3\n" << nx << " " << ny << "\n255\n";
 
-    hitable *world = random_scene();
+    hitable *world = cornell_box();
+    // hitable *world = random_scene();
 
     //view point
     vec3 lookfrom(11,2,3);
@@ -118,7 +146,8 @@ int main() {
                 float u = float(i + random_double()) / float(nx);
                 float v = float(j + random_double()) / float(ny);
                 ray r = cam.get_ray(u, v);
-                col += color(r, world,0);
+                auto background = vec3(0,0,0);//set background color
+                col += color(r,background, world,0);
             }
             col /= float(ns);
             col = vec3( sqrt(col[0]), sqrt(col[1]), sqrt(col[2]) );

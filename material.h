@@ -48,6 +48,10 @@ class material  {
     public:
         //scatter according to material properties
         virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) const = 0;
+        //emitted light(default is black)
+        virtual vec3 emitted(float u, float v, const vec3& p) const {
+            return vec3(0,0,0);
+        }
 };
 
 //Lambertian material
@@ -122,6 +126,19 @@ class dielectric : public material {
         }
 
         float ref_idx;
+};
+
+class light : public material {
+    public:
+        light(texture *a) : emit(a) {}
+        light(const vec3& c) : emit(new solid_color(c)) {}
+        virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) const  {
+            return false;
+        }
+        virtual vec3 emitted(float u, float v, const vec3& p) const override {
+            return emit->value(u, v, p);
+        }
+        texture *emit;
 };
 
 
