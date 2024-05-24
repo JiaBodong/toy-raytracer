@@ -96,24 +96,37 @@ hitable *random_scene() {
 }
 
 hitable *cornell_box() {
-    hitable **list = new hitable*[8];
+    hitable **list = new hitable*[200];
     int i = 0;
     material *red = new lambertian(new solid_color(vec3(0.65, 0.05, 0.05)));
     material *white = new lambertian(new solid_color(vec3(0.73, 0.73, 0.73)));
     material *green = new lambertian(new solid_color(vec3(0.12, 0.45, 0.15)));
-    material *light = new light(new solid_color(vec3(15, 15, 15)));
+    
+    material *light_area = new light(new solid_color(vec3(15, 15, 15)));
 
     list[i++] = new yz_rect(0, 555, 0, 555, 555, green);
     list[i++] = new yz_rect(0, 555, 0, 555, 0, red);
-    list[i++] = new xz_rect(213, 343, 227, 332, 554, light);
+    list[i++] = new xz_rect(213, 343, 227, 332, 554, light_area);
     list[i++] = new xz_rect(0, 555, 0, 555, 0, white);
     list[i++] = new xz_rect(0, 555, 0, 555, 555, white);
     list[i++] = new xy_rect(0, 555, 0, 555, 555, white);
 
-    list[i++] = new box(vec3(130, 0, 65), vec3(295, 165, 230), white);
-    list[i++] = new box(vec3(265, 0, 295), vec3(430, 330, 460), white);
+    //generate hundreds of random spheres of different materials
+    int n = 100;
+    for (int j = 0; j < n; j++) {
+        list[i++] = new sphere(vec3(165*random_double(), 165*random_double(), 165*random_double()), 10.0,
+                               new lambertian(new solid_color(vec3(random_double()*random_double(),
+                                                                  random_double()*random_double(),
+                                                                  random_double()*random_double()))));
+    }
 
-    return new bvh_node(list, i, 0.0, 1.0);
+    // list[i++] = new box(vec3(130, 0, 65), vec3(295, 165, 230), white);
+    // list[i++] = new box(vec3(265, 0, 295), vec3(430, 330, 460), white);
+
+    // return new bvh_node(list, i, 0.0, 1.0);
+
+    //for time comparison
+    return new hitable_list(list,i);
 }
 
 
@@ -121,21 +134,27 @@ hitable *cornell_box() {
 
 int main() {
    
-    int nx = 960;
-    int ny = 540;
-    int ns = 100;//number of samples per pixel
+    int nx = 600;
+    int ny = 600;
+    int ns = 200;//number of samples per pixel
     std::cout << "P3\n" << nx << " " << ny << "\n255\n";
 
     hitable *world = cornell_box();
+    //view point for cornell box
+    vec3 lookfrom(278, 278, -800);
+    vec3 lookat(278, 278, 0);
+    float dist_to_focus = 10.0;//for depth of field
+    float aperture =0.0;
+    camera cam(lookfrom, lookat, vec3(0,1,0), 40, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0);
     // hitable *world = random_scene();
 
-    //view point
-    vec3 lookfrom(11,2,3);
-    vec3 lookat(0,0,0);
-    float dist_to_focus = 15.0;//for depth of field
-    float aperture = 0.1;
+    // //view point
+    // vec3 lookfrom(11,2,3);
+    // vec3 lookat(0,0,0);
+    // float dist_to_focus = 15.0;//for depth of field
+    // float aperture = 0.1;
 
-    camera cam(lookfrom, lookat, vec3(0,1,0), 20, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0);
+    // camera cam(lookfrom, lookat, vec3(0,1,0), 20, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0);
 
     for (int j = ny-1; j >= 0; j--) {
         std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;

@@ -7,11 +7,17 @@ class material;
 
 struct hit_record
 {
-    float t;//hit time
-    float u, v;//texture coordinates
-    vec3 p;//hit point
-    vec3 normal;//normal at hit point
-    material *mat_ptr;//material of the hit object
+    float t; // hit time
+    float u, v; // texture coordinates
+    vec3 p; // hit point
+    vec3 normal; // normal at hit point
+    material* mat_ptr; // material of the hit object
+
+    inline void set_face_normal(const ray& r, const vec3& outward_normal)
+    {
+        auto front_face = dot(r.direction(), outward_normal) < 0;
+        normal = front_face ? outward_normal : -outward_normal;
+    }
 };
 
 class hitable  {
