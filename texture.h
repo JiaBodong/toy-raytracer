@@ -99,4 +99,56 @@ private:
     int bytes_per_scanline;
 };
 
+class normal_texture : public texture {
+public:
+    normal_texture() {}
+    normal_texture(const char *filename) {
+        auto components_per_pixel = 3;
+        data = stbi_load(filename, &nx, &ny, &components_per_pixel, components_per_pixel);
+
+        if (!data) {
+            std::cerr << "ERROR: Could not load texture image file '" << filename << "'.\n";
+            nx = ny = 0;
+        }
+
+        bytes_per_scanline = components_per_pixel * nx;
+    }
+
+    ~normal_texture() {
+        delete data;
+    }
+
+    virtual vec3 value(float u, float v, const vec3& p) const override {
+        //if no data, return cyan as a debugging aid
+        if (data == nullptr)
+            return vec3(0, 0, 1);
+        
+        u = clamp(u, 0.0f, 1.0f);
+        v = 1.0f - clamp(v, 0.0f, 1.0f); //flip V to image coordinates
+
+        int i = static_cast<int>(u*nx);
+        int j = static_cast<int>(v*ny);
+
+        //clamp integer mapping, since actual coordinates should be less than 1.0
+        if (i >= nx) i = nx-1;
+        if (j >= ny) j = ny-1;
+
+        const auto color_scale = 1.0f/255.0f;
+        auto pixel = data + j*bytes_per_scanline + i*3;
+
+        vec3 normal;
+        normal[0] = color_scale*pixel[0];
+        normal[1] = color_scale*pixel[1];
+        normal[2] = color_scale*pixel[2];
+
+        return normal;
+    }
+
+private:
+    unsigned char *data;
+    int nx, ny;
+    int bytes_per_scanline;
+};
+
+
 #endif

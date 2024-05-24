@@ -57,12 +57,19 @@ class material  {
 //Lambertian material
 class lambertian : public material {
     public:
-        //with texture pointer
+        //add texture pointer
         lambertian(const vec3& a) : albedo(new solid_color(a)) {}
-        lambertian(texture *a) : albedo(a) {}
+        lambertian(texture *a, texture *normal_map = nullptr) : albedo(a),normal_map(normal_map) {}
         //scatter according to Lambertian reflection
         virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) const  {
-             vec3 target = rec.p + rec.normal + random_in_unit_sphere();
+           
+
+             vec3 normal = rec.normal;
+            if (normal_map != nullptr) {
+                vec3 n = normal_map->value(rec.u, rec.v, rec.p);
+                normal = unit_vector(n);
+            }
+             vec3 target = rec.p + normal + random_in_unit_sphere();
              scattered = ray(rec.p, target-rec.p, r_in.time());
              //attenuation = albedo;//always scatter with the same albedo, for easy implementation
              attenuation = albedo->value(rec.u, rec.v, rec.p);
@@ -71,6 +78,7 @@ class lambertian : public material {
 
         //diffuse reflection coefficient
         texture *albedo;
+        texture *normal_map;
 };
 
 //For metal materials

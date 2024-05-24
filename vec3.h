@@ -140,5 +140,9 @@ inline vec3 unit_vector(vec3 v) {
     return v / v.length();
 }
 
+inline float degrees_to_radians(float degrees) {
+    return degrees * M_PI / 180.0;
+}
+
 
 #endif

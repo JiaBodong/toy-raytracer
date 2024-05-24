@@ -1,6 +1,7 @@
 #include <iostream>
 #include "sphere.h"
 #include "rect.h"
+#include "box.h"
 #include "dynamic_sphere.h"
 #include "hitable_list.h"
 #include "float.h"
@@ -77,9 +78,10 @@ hitable *random_scene() {
     list[i++] = new sphere(vec3(-1, 1, 0), 1.0, new dielectric(1.5));//glass big sphere
     // list[i++] = new sphere(vec3(-8, 1, 0), 1.0, new lambertian(vec3(0.2, 0.1, 0.1)));//diffuse big sphere
     auto moon_texture = new image_texture("external/moon.jpg");
-    auto moon_surface = new lambertian(moon_texture);
-    list[i++] = new sphere(vec3(-8, 1, 0), 1.0, moon_surface);//moon big sphere
-    list[i++] = new sphere(vec3(4, 1, 0), 1.0, new metal(vec3(0.7, 0.6, 0.5), 0.3));//metal big sphere
+    auto moon_normal_map = new image_texture("external/moonnormal.png");
+    auto moon_surface = new lambertian(moon_texture, moon_normal_map);
+    list[i++] = new sphere(vec3(4, 1, 0), 1.0, moon_surface);//moon big sphere
+    list[i++] = new sphere(vec3(-8, 1, 0), 1.0, new metal(vec3(0.7, 0.6, 0.5), 0.3));//metal big sphere
 
 
     //add light
@@ -96,7 +98,7 @@ hitable *random_scene() {
 }
 
 hitable *cornell_box() {
-    hitable **list = new hitable*[200];
+    hitable **list = new hitable*[20];
     int i = 0;
     material *red = new lambertian(new solid_color(vec3(0.65, 0.05, 0.05)));
     material *white = new lambertian(new solid_color(vec3(0.73, 0.73, 0.73)));
@@ -112,18 +114,31 @@ hitable *cornell_box() {
     list[i++] = new xy_rect(0, 555, 0, 555, 555, white);
 
     //generate hundreds of random spheres of different materials
-    int n = 100;
-    for (int j = 0; j < n; j++) {
-        list[i++] = new sphere(vec3(165*random_double(), 165*random_double(), 165*random_double()), 10.0,
-                               new lambertian(new solid_color(vec3(random_double()*random_double(),
-                                                                  random_double()*random_double(),
-                                                                  random_double()*random_double()))));
-    }
+    // int n = 10;
+    // for (int j = 0; j < n; j++) {
+    //     list[i++] = new sphere(vec3(165*random_double(), 165*random_double(), 165*random_double()), 100,
+    //                            new lambertian(new solid_color(vec3(random_double()*random_double(),
+    //                                                               random_double()*random_double(),
+    //                                                               random_double()*random_double()))));
+    // }
 
-    // list[i++] = new box(vec3(130, 0, 65), vec3(295, 165, 230), white);
-    // list[i++] = new box(vec3(265, 0, 295), vec3(430, 330, 460), white);
+    //list[i++] = new box(vec3(130, 0, 65), vec3(295, 165, 230), white);
+    //translate and rotate
+    list[i++] = new translate(new rotate_y(new box(vec3(0, 0, 0), vec3(165, 330, 165), white), 15), vec3(265, 0, 295));
 
-    // return new bvh_node(list, i, 0.0, 1.0);
+    //list[i++] = new box(vec3(265, 0, 295), vec3(430, 330, 460), white);
+    //translate and rotate
+    // list[i++] = new translate(new rotate_y(new box(vec3(0, 0, 0), vec3(165, 165, 165), white), -18), vec3(130, 0, 65));
+    auto moon_texture = new image_texture("external/moon.jpg");
+    auto moon_normal_map = new image_texture("external/moonnormal.png");
+    auto moon_surface = new lambertian(moon_texture);
+    list[i++] = new sphere(vec3(190, 90, 190), 90, moon_surface);//moon big sphere
+    //move the moon big sphere to the top of the left box
+    
+
+
+
+    //return new bvh_node(list, i, 0.0, 1.0);
 
     //for time comparison
     return new hitable_list(list,i);
@@ -146,6 +161,8 @@ int main() {
     float dist_to_focus = 10.0;//for depth of field
     float aperture =0.0;
     camera cam(lookfrom, lookat, vec3(0,1,0), 40, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0);
+
+
     // hitable *world = random_scene();
 
     // //view point
