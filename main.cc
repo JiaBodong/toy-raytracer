@@ -20,6 +20,23 @@ vec3 color(const ray& r,const vec3& background, hitable *world, int depth) {
         vec3 attenuation;
         vec3 emitted = rec.mat_ptr->emitted(rec.u, rec.v, rec.p);
         if (depth < 50 && rec.mat_ptr->scatter(r, rec, attenuation, scattered)) {
+            // float pdf;
+            // auto on_light = vec3(213, 554, 227);
+            // auto to_light = on_light - rec.p;
+            // auto distance_squared = to_light.squared_length();
+            // to_light.make_unit_vector();
+            // if (dot(to_light, rec.normal) < 0)
+            //     return emitted;
+            // float light_area = 156*156;
+            // float light_cosine = fabs(to_light.y());
+            // if (light_cosine < 0.000001)
+            //     return emitted;
+            // pdf = distance_squared / (light_cosine * light_area);
+            // scattered = ray(rec.p, to_light, r.time());
+
+            // float material_pdf = rec.mat_ptr->pdf_value(r, rec, scattered);
+            // float weigihted_pdf = material_pdf / pdf;
+            // return emitted + attenuation*color(scattered, background, world, depth+1) * weigihted_pdf;
             return emitted + attenuation*color(scattered, background, world, depth+1);
         } else {
             return emitted;
@@ -28,6 +45,8 @@ vec3 color(const ray& r,const vec3& background, hitable *world, int depth) {
         return background;
     }
 }
+
+
 
 //random scene generator, returns a list of hitable objects, including a ground plane, 3 large spheres, and 600 small spheres
 hitable *random_scene() {
@@ -79,15 +98,15 @@ hitable *random_scene() {
     // list[i++] = new sphere(vec3(-8, 1, 0), 1.0, new lambertian(vec3(0.2, 0.1, 0.1)));//diffuse big sphere
     auto moon_texture = new image_texture("external/moon.jpg");
     auto moon_normal_map = new image_texture("external/moonnormal.png");
-    auto moon_surface = new lambertian(moon_texture, moon_normal_map);
+    auto moon_surface = new lambertian(moon_texture);
     list[i++] = new sphere(vec3(4, 1, 0), 1.0, moon_surface);//moon big sphere
     list[i++] = new sphere(vec3(-8, 1, 0), 1.0, new metal(vec3(0.7, 0.6, 0.5), 0.3));//metal big sphere
 
 
     //add light
-    auto diffuse_light = new light(new solid_color(vec3(4,4,4)));
-    auto light = new xz_rect(0,2, 0, 2, 2, diffuse_light);
-    list[i++] = light;
+    // auto diffuse_light = new light(new solid_color(vec3(4,4,4)));
+    // auto light = new xz_rect(0,2, 0, 2, 2, diffuse_light);
+    // list[i++] = light;
 
 
     //construct the bounding volume hierarchy
@@ -108,7 +127,7 @@ hitable *cornell_box() {
 
     list[i++] = new yz_rect(0, 555, 0, 555, 555, green);
     list[i++] = new yz_rect(0, 555, 0, 555, 0, red);
-    list[i++] = new xz_rect(213, 343, 227, 332, 554, light_area);
+    list[i++] = new xz_rect(200, 356, 200, 359, 554, light_area);
     list[i++] = new xz_rect(0, 555, 0, 555, 0, white);
     list[i++] = new xz_rect(0, 555, 0, 555, 555, white);
     list[i++] = new xy_rect(0, 555, 0, 555, 555, white);
@@ -124,21 +143,21 @@ hitable *cornell_box() {
 
     //list[i++] = new box(vec3(130, 0, 65), vec3(295, 165, 230), white);
     //translate and rotate
-    list[i++] = new translate(new rotate_y(new box(vec3(0, 0, 0), vec3(165, 330, 165), white), 15), vec3(265, 0, 295));
+    //list[i++] = new translate(new rotate_y(new box(vec3(0, 0, 0), vec3(165, 330, 165), white), 15), vec3(265, 0, 295));
 
     //list[i++] = new box(vec3(265, 0, 295), vec3(430, 330, 460), white);
     //translate and rotate
     // list[i++] = new translate(new rotate_y(new box(vec3(0, 0, 0), vec3(165, 165, 165), white), -18), vec3(130, 0, 65));
     auto moon_texture = new image_texture("external/moon.jpg");
     auto moon_normal_map = new image_texture("external/moonnormal.png");
-    auto moon_surface = new lambertian(moon_texture);
-    list[i++] = new sphere(vec3(190, 90, 190), 90, moon_surface);//moon big sphere
+    auto moon_surface = new lambertian(moon_texture, moon_normal_map);
+    list[i++] = new sphere(vec3(250, 250, 250), 200, moon_surface);//moon big sphere
     //move the moon big sphere to the top of the left box
     
 
 
 
-    //return new bvh_node(list, i, 0.0, 1.0);
+    // return new bvh_node(list, i, 0.0, 1.0);
 
     //for time comparison
     return new hitable_list(list,i);
@@ -149,9 +168,9 @@ hitable *cornell_box() {
 
 int main() {
    
-    int nx = 600;
-    int ny = 600;
-    int ns = 200;//number of samples per pixel
+    int nx = 800;
+    int ny = 800;
+    int ns = 300;//number of samples per pixel
     std::cout << "P3\n" << nx << " " << ny << "\n255\n";
 
     hitable *world = cornell_box();
@@ -168,7 +187,7 @@ int main() {
     // //view point
     // vec3 lookfrom(11,2,3);
     // vec3 lookat(0,0,0);
-    // float dist_to_focus = 15.0;//for depth of field
+    // float dist_to_focus = 10.0;//for depth of field
     // float aperture = 0.1;
 
     // camera cam(lookfrom, lookat, vec3(0,1,0), 20, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0);
@@ -182,7 +201,7 @@ int main() {
                 float u = float(i + random_double()) / float(nx);
                 float v = float(j + random_double()) / float(ny);
                 ray r = cam.get_ray(u, v);
-                auto background = vec3(0,0,0);//set background color
+                auto background = vec3(0.5,0.7,1.0);//set background color
                 col += color(r,background, world,0);
             }
             col /= float(ns);

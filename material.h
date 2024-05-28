@@ -52,6 +52,10 @@ class material  {
         virtual vec3 emitted(float u, float v, const vec3& p) const {
             return vec3(0,0,0);
         }
+        //pdf value for materials
+        virtual float pdf_value(const ray& r_in, const hit_record& rec, const ray& scattered) const {
+            return 0;
+        }
 };
 
 //Lambertian material
@@ -67,18 +71,29 @@ class lambertian : public material {
              vec3 normal = rec.normal;
             if (normal_map != nullptr) {
                 vec3 n = normal_map->value(rec.u, rec.v, rec.p);
+                n = 2.0f * n - vec3(1.0f, 1.0f, 1.0f);
                 normal = unit_vector(n);
             }
              vec3 target = rec.p + normal + random_in_unit_sphere();
              scattered = ray(rec.p, target-rec.p, r_in.time());
              //attenuation = albedo;//always scatter with the same albedo, for easy implementation
+             
              attenuation = albedo->value(rec.u, rec.v, rec.p);
              return true;
+        }
+        
+        //pdf value for lambertian material
+        virtual float pdf_value(const ray& r_in, const hit_record& rec, const ray& scattered) const override {
+            float cosine = dot(rec.normal, unit_vector(scattered.direction()));
+            if (cosine < 0)
+                cosine = 0;
+            return cosine / M_PI;
         }
 
         //diffuse reflection coefficient
         texture *albedo;
         texture *normal_map;
+      
 };
 
 //For metal materials
@@ -146,6 +161,8 @@ class light : public material {
         virtual vec3 emitted(float u, float v, const vec3& p) const override {
             return emit->value(u, v, p);
         }
+        
+
         texture *emit;
 };
 
