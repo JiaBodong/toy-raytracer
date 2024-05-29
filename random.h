@@ -27,4 +27,14 @@ inline unsigned int morton_code(vec3& p){
     unsigned int z = splitBy3(p.e[2]);
     return x | (y << 1) | (z << 2);
 }
+
+inline vec3 random_cosine_direction() {
+    float r1 = random_double();
+    float r2 = random_double();
+    float z = sqrt(1-r2);
+    float phi = 2*M_PI*r1;
+    float x = cos(phi)*2*sqrt(r2);
+    float y = sin(phi)*2*sqrt(r2);
+    return vec3(x, y, z);
+}
 #endif

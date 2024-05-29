@@ -13,32 +13,32 @@
 #include "aabb.h"
 #include "bvh.h"
 #include "sah.h"
+#include "pdf.h"
 
-vec3 color(const ray& r,const vec3& background, hitable *world, int depth) {
+vec3 color(const ray& r,const vec3& background, hitable *world, hitable** light, int depth) {
     hit_record rec;
     if (world->hit(r, 0.001, FLT_MAX, rec)) {
         ray scattered;
         vec3 attenuation;
         vec3 emitted = rec.mat_ptr->emitted(rec.u, rec.v, rec.p);
-        if (depth < 50 && rec.mat_ptr->scatter(r, rec, attenuation, scattered)) {
-            // float pdf;
-            // auto on_light = vec3(213, 554, 227);
-            // auto to_light = on_light - rec.p;
-            // auto distance_squared = to_light.squared_length();
-            // to_light.make_unit_vector();
-            // if (dot(to_light, rec.normal) < 0)
-            //     return emitted;
-            // float light_area = 156*156;
-            // float light_cosine = fabs(to_light.y());
-            // if (light_cosine < 0.000001)
-            //     return emitted;
-            // pdf = distance_squared / (light_cosine * light_area);
-            // scattered = ray(rec.p, to_light, r.time());
+        float pdf;
+        if (depth < 50 && rec.mat_ptr->scatter(r, rec, attenuation, scattered,pdf)) {
+            
+            //light sampling
+            // hitable_pdf light_pdf(light, rec.p);
+            // scattered = ray(rec.p, light_pdf.generate(), r.time());
+            // pdf = light_pdf.value(scattered.direction());
 
-            // float material_pdf = rec.mat_ptr->pdf_value(r, rec, scattered);
-            // float weigihted_pdf = material_pdf / pdf;
-            // return emitted + attenuation*color(scattered, background, world, depth+1) * weigihted_pdf;
-            return emitted + attenuation*color(scattered, background, world, depth+1);
+            //multiple importance sampling(2 light sources)
+            auto p1 = new hitable_pdf(light,0, rec.p);
+            auto p2 = new hitable_pdf(light,1, rec.p);
+            auto p3 = new cosine_pdf(rec.normal);
+            mixture_pdf p(p1, p2, p3);
+            scattered = ray(rec.p, p.generate(), r.time());
+            pdf = p.value(scattered.direction());
+
+            return emitted + attenuation*rec.mat_ptr->scattering_pdf(r, rec, scattered)*color(scattered, background, world,light, depth+1)/pdf;
+            //return emitted + attenuation*color(scattered, background, world,light, depth+1);
         } else {
             return emitted;
         }
@@ -124,19 +124,26 @@ hitable *cornell_box() {
     material *white = new lambertian(new solid_color(vec3(0.73, 0.73, 0.73)));
     material *green = new lambertian(new solid_color(vec3(0.12, 0.45, 0.15)));
 
-    material *light_area = new light(new solid_color(vec3(15, 15, 15)));
+    material *light_area = new light(new solid_color(vec3(5, 5, 5)));
 
     list[i++] = new yz_rect(0, 555, 0, 555, 555, green);
     list[i++] = new yz_rect(0, 555, 0, 555, 0, red);
     list[i++] = new xz_rect(200, 356, 200, 359, 554, light_area);
+   
+    // list[i++] = new yz_rect(200, 356, 200, 359, 0, light_area);
+     //another light,same as xz_rect, on the left corner on the floor
+    list[i++] = new xz_rect(400, 500, 400, 500, 554, light_area);
 
-    std::vector<triangle*> tris;
-    //build a small mesh light(not rectangle), on the left wall
-    tris.push_back(new triangle(vec3(0, 0, 0), vec3(0, 0, 100), vec3(0, 100, 100), light_area));
-    //tris.push_back(new triangle(vec3(0, 0, 0), vec3(0, 100, 100), vec3(0, 100, 0), light_area));
-    
-
-    list[i++] = new mesh(tris);
+    // std::vector<triangle*> tris;
+    // //build a Three-dimensional triangle light composed of triangles(not rectangle) (x,z,y)
+    // tris.push_back(new triangle(vec3(0, 0, 0), vec3(100, 0, 0), vec3(100, 0, 100), light_area));
+    // tris.push_back(new triangle(vec3(0, 0, 0), vec3(100, 0, 100), vec3(0, 0, 100), light_area));
+    // tris.push_back(new triangle(vec3(0,0,0),vec3(50,50,50),vec3(100,0,100),light_area));
+    // tris.push_back(new triangle(vec3(0,0,0),vec3(50,50,50),vec3(0,0,100),light_area));
+    // tris.push_back(new triangle(vec3(100,0,0),vec3(50,50,50),vec3(100,0,100),light_area));
+    // tris.push_back(new triangle(vec3(100,0,0),vec3(50,50,50),vec3(0,0,0),light_area));
+    // tris.push_back(new triangle(vec3(0,0,100),vec3(50,50,50),vec3(100,0,100),light_area));
+    // list[i++] = new mesh(tris);
 
     list[i++] = new xz_rect(0, 555, 0, 555, 0, white);
     list[i++] = new xz_rect(0, 555, 0, 555, 555, white);
@@ -153,19 +160,19 @@ hitable *cornell_box() {
 
     //list[i++] = new box(vec3(130, 0, 65), vec3(295, 165, 230), white);
     //translate and rotate
-    //list[i++] = new translate(new rotate_y(new box(vec3(0, 0, 0), vec3(165, 330, 165), white), 15), vec3(265, 0, 295));
+    list[i++] = new translate(new rotate_y(new box(vec3(0, 0, 0), vec3(165, 330, 165), white), 15), vec3(265, 0, 295));
 
-    //list[i++] = new box(vec3(265, 0, 295), vec3(430, 330, 460), white);
+    // list[i++] = new box(vec3(265, 0, 295), vec3(430, 330, 460), white);
     //translate and rotate
-    // list[i++] = new translate(new rotate_y(new box(vec3(0, 0, 0), vec3(165, 165, 165), white), -18), vec3(130, 0, 65));
-    auto moon_texture = new image_texture("external/moon.jpg");
-    auto moon_normal_map = new image_texture("external/moonnormal.png");
-    auto moon_surface = new lambertian(moon_texture, moon_normal_map);
-    list[i++] = new sphere(vec3(250, 250, 250), 200, moon_surface);//moon big sphere
-    //move the moon big sphere to the top of the left box
+    list[i++] = new translate(new rotate_y(new box(vec3(0, 0, 0), vec3(165, 165, 165), white), -18), vec3(130, 0, 65));
+
+    // //big moon sphere
+    // auto moon_texture = new image_texture("external/moon.jpg");
+    // auto moon_normal_map = new image_texture("external/moonnormal.png");
+    // auto moon_surface = new lambertian(moon_texture, moon_normal_map);
+    // list[i++] = new sphere(vec3(250, 250, 250), 200, moon_surface);//moon big sphere
+  
     
-
-
 
     //return new bvh_node(list, i, 0.0, 1.0);
 
@@ -178,17 +185,23 @@ hitable *cornell_box() {
 
 int main() {
    
-    int nx = 400;
-    int ny = 400;
-    int ns = 50;//number of samples per pixel
+    int nx = 600;
+    int ny = 600;
+    int ns = 150;//number of samples per pixel
     std::cout << "P3\n" << nx << " " << ny << "\n255\n";
 
+    //multiple light sources
+    material *light_area = new light(new solid_color(vec3(5, 5, 5)));
+    hitable *light[2];
+    light[0] = new xz_rect(400, 500, 400, 500, 554, light_area);
+    light[1] = new xz_rect(200, 356, 200, 359, 554, light_area);
+    //light[1] = new yz_rect(200, 356, 200, 359, 0, light_area);
     hitable *world = cornell_box();
     //view point for cornell box
     vec3 lookfrom(278, 278, -800);
     vec3 lookat(278, 278, 0);
     float dist_to_focus = 10.0;//for depth of field
-    float aperture =0.0;
+    float aperture =0.2;
     camera cam(lookfrom, lookat, vec3(0,1,0), 40, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0);
 
 
@@ -212,7 +225,7 @@ int main() {
                 float v = float(j + random_double()) / float(ny);
                 ray r = cam.get_ray(u, v);
                 auto background = vec3(0,0,0);//set background color
-                col += color(r,background, world,0);
+                col += color(r,background, world,light,0);
             }
             col /= float(ns);
             col = vec3( sqrt(col[0]), sqrt(col[1]), sqrt(col[2]) );

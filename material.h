@@ -5,7 +5,7 @@
 #include "hitable.h"
 #include "random.h"
 #include "texture.h"
-
+#include "onb.h"
 struct hit_record;
 
 //schlick approximation, computes reflectivity of glass
@@ -47,15 +47,19 @@ vec3 random_in_unit_sphere() {
 class material  {
     public:
         //scatter according to material properties
-        virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) const = 0;
+        virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered,float& pdf) const{
+            return false;
+        }
+
+        virtual float scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered) const {
+            return 0;
+        }
+
         //emitted light(default is black)
         virtual vec3 emitted(float u, float v, const vec3& p) const {
             return vec3(0,0,0);
         }
-        //pdf value for materials
-        virtual float pdf_value(const ray& r_in, const hit_record& rec, const ray& scattered) const {
-            return 0;
-        }
+
 };
 
 //Lambertian material
@@ -65,29 +69,31 @@ class lambertian : public material {
         lambertian(const vec3& a) : albedo(new solid_color(a)) {}
         lambertian(texture *a, texture *normal_map = nullptr) : albedo(a),normal_map(normal_map) {}
         //scatter according to Lambertian reflection
-        virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) const  {
+        virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered, float& pdf) const override  {
            
 
              vec3 normal = rec.normal;
             if (normal_map != nullptr) {
+                //handle normal map
                 vec3 n = normal_map->value(rec.u, rec.v, rec.p);
                 n = 2.0f * n - vec3(1.0f, 1.0f, 1.0f);
                 normal = unit_vector(n);
             }
-             vec3 target = rec.p + normal + random_in_unit_sphere();
-             scattered = ray(rec.p, target-rec.p, r_in.time());
-             //attenuation = albedo;//always scatter with the same albedo, for easy implementation
-             
+            onb uvw;
+            uvw.build_from_w(normal);
+            auto target = uvw.local(random_cosine_direction());
+             //vec3 target = rec.p + normal + random_in_unit_sphere();
+            //  scattered = ray(rec.p, target-rec.p, r_in.time());
+             scattered = ray(rec.p, unit_vector(target), r_in.time());
              attenuation = albedo->value(rec.u, rec.v, rec.p);
+
+            pdf = dot(uvw.w(), scattered.direction()) / M_PI;
              return true;
         }
         
-        //pdf value for lambertian material
-        virtual float pdf_value(const ray& r_in, const hit_record& rec, const ray& scattered) const override {
+        float scattering_pdf(const ray& r_in, const hit_record& rec, const ray& scattered) const override {
             float cosine = dot(rec.normal, unit_vector(scattered.direction()));
-            if (cosine < 0)
-                cosine = 0;
-            return cosine / M_PI;
+            return cosine < 0 ? 0 : cosine / M_PI;
         }
 
         //diffuse reflection coefficient
