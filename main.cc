@@ -201,8 +201,9 @@ int main() {
     vec3 lookfrom(278, 278, -800);
     vec3 lookat(278, 278, 0);
     float dist_to_focus = 10.0;//for depth of field
-    float aperture =0.2;
-    camera cam(lookfrom, lookat, vec3(0,1,0), 40, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0);
+    float aperture =0.05;
+    float lens_flare_intensity =50;
+    camera cam(lookfrom, lookat, vec3(0,1,0), 40, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0, lens_flare_intensity);
 
 
     // hitable *world = random_scene();
