@@ -1,6 +1,8 @@
 #include <iostream>
+#include <vector>
 #include "sphere.h"
 #include "rect.h"
+#include "mesh.h"
 #include "box.h"
 #include "dynamic_sphere.h"
 #include "hitable_list.h"
@@ -11,7 +13,6 @@
 #include "aabb.h"
 #include "bvh.h"
 #include "sah.h"
-
 
 vec3 color(const ray& r,const vec3& background, hitable *world, int depth) {
     hit_record rec;
@@ -122,12 +123,21 @@ hitable *cornell_box() {
     material *red = new lambertian(new solid_color(vec3(0.65, 0.05, 0.05)));
     material *white = new lambertian(new solid_color(vec3(0.73, 0.73, 0.73)));
     material *green = new lambertian(new solid_color(vec3(0.12, 0.45, 0.15)));
-    
+
     material *light_area = new light(new solid_color(vec3(15, 15, 15)));
 
     list[i++] = new yz_rect(0, 555, 0, 555, 555, green);
     list[i++] = new yz_rect(0, 555, 0, 555, 0, red);
     list[i++] = new xz_rect(200, 356, 200, 359, 554, light_area);
+
+    std::vector<triangle*> tris;
+    //build a small mesh light(not rectangle), on the left wall
+    tris.push_back(new triangle(vec3(0, 0, 0), vec3(0, 0, 100), vec3(0, 100, 100), light_area));
+    //tris.push_back(new triangle(vec3(0, 0, 0), vec3(0, 100, 100), vec3(0, 100, 0), light_area));
+    
+
+    list[i++] = new mesh(tris);
+
     list[i++] = new xz_rect(0, 555, 0, 555, 0, white);
     list[i++] = new xz_rect(0, 555, 0, 555, 555, white);
     list[i++] = new xy_rect(0, 555, 0, 555, 555, white);
@@ -157,7 +167,7 @@ hitable *cornell_box() {
 
 
 
-    // return new bvh_node(list, i, 0.0, 1.0);
+    //return new bvh_node(list, i, 0.0, 1.0);
 
     //for time comparison
     return new hitable_list(list,i);
@@ -168,9 +178,9 @@ hitable *cornell_box() {
 
 int main() {
    
-    int nx = 800;
-    int ny = 800;
-    int ns = 300;//number of samples per pixel
+    int nx = 400;
+    int ny = 400;
+    int ns = 50;//number of samples per pixel
     std::cout << "P3\n" << nx << " " << ny << "\n255\n";
 
     hitable *world = cornell_box();
@@ -201,7 +211,7 @@ int main() {
                 float u = float(i + random_double()) / float(nx);
                 float v = float(j + random_double()) / float(ny);
                 ray r = cam.get_ray(u, v);
-                auto background = vec3(0.5,0.7,1.0);//set background color
+                auto background = vec3(0,0,0);//set background color
                 col += color(r,background, world,0);
             }
             col /= float(ns);
