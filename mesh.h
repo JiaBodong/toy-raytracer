@@ -1,9 +1,12 @@
-#ifndef MESH_H
-#define MESH_H
-
+#ifndef TINYOBJLOADER_IMPLEMENTATION
+#define TINYOBJLOADER_IMPLEMENTATION
 #include "hitable.h"
 #include "material.h"
+#include "external/tiny_obj_loader.h"
 #include <vector>
+#include <string>
+#include <iostream>
+
 
 // Triangle class for mesh
 class triangle : public hitable {
@@ -63,41 +66,73 @@ bool triangle::intersect_triangle(const ray& r, float& t, float& u, float& v) co
     return t > 0.00001;
 }
 
-// Mesh class, a collection of triangles
+// mesh obj class
 class mesh : public hitable {
     public:
-        mesh() {}
-        mesh(const std::vector<triangle*>& tris) : triangles(tris) {}
-        //ray-mesh intersection
-        virtual bool hit(const ray& r, float t_min, float t_max, hit_record& rec) const override;
+        mesh(const std::string& filename, material *mat, float scale = 1.0, const vec3& offset = vec3(0, 0, 0)) {
+            tinyobj::attrib_t attrib;
+            std::vector<tinyobj::shape_t> shapes;
+            std::vector<tinyobj::material_t> materials;
+            std::string warn, err;
+            if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filename.c_str(), nullptr, true)) {
+                std::cerr << err << std::endl;
+                return;
+            }
+            for (size_t s = 0; s < shapes.size(); s++) {
+                size_t index_offset = 0;
+                for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+                    int fv = shapes[s].mesh.num_face_vertices[f];
+                    if (fv != 3) {
+                        std::cerr << "Only triangle mesh is supported" << std::endl;
+                        return;
+                    }
+                    std::vector<vec3> vertices;
+                    for (size_t v = 0; v < fv; v++) {
+                        tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+                        vertices.push_back(scale*vec3(attrib.vertices[3*idx.vertex_index+0],
+                                                 attrib.vertices[3*idx.vertex_index+1],
+                                                 attrib.vertices[3*idx.vertex_index+2]));
+                    }
+                    for (auto& vertex : vertices) vertex += offset;//translate the mesh
+                    triangles.push_back(new triangle(vertices[0], vertices[1], vertices[2], mat));
+                    index_offset += fv;
+                }
+            }
+        }
+
+        virtual bool hit(const ray& r, float t_min, float t_max, hit_record& rec) const override {
+            hit_record temp_rec;
+            bool hit_anything = false;
+            float closest_so_far = t_max;
+            for (const auto& triangle : triangles) {
+                if (triangle->hit(r, t_min, closest_so_far, temp_rec)) {
+                    hit_anything = true;
+                    closest_so_far = temp_rec.t;
+                    rec = temp_rec;
+                }
+            }
+            return hit_anything;
+        }
+
         virtual bool bounding_box(float t0, float t1, aabb& box) const override {
             if (triangles.empty()) return false;
             aabb temp_box;
             bool first_box = true;
-            //loop through all triangles to get the bounding box of the mesh
-            for (const auto& tri : triangles) {
-                if (!tri->bounding_box(t0, t1, temp_box)) return false;
+            for (const auto& triangle : triangles) {
+                if (!triangle->bounding_box(t0, t1, temp_box)) return false;
                 box = first_box ? temp_box : box.merge_box(box, temp_box);
                 first_box = false;
             }
             return true;
         }
+
         std::vector<triangle*> triangles;
+
+
 };
 
-bool mesh::hit(const ray& r, float t_min, float t_max, hit_record& rec) const {
-    hit_record temp_rec;
-    bool hit_anything = false;
-    float closest_so_far = t_max;
-    //loop through all triangles to find the closest hit
-    for (const auto& tri : triangles) {
-        if (tri->hit(r, t_min, closest_so_far, temp_rec)) {
-            hit_anything = true;
-            closest_so_far = temp_rec.t;
-            rec = temp_rec;
-        }
-    }
-    return hit_anything;
-}
+
+
+
 
 #endif

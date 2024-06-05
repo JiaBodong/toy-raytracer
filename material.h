@@ -8,6 +8,8 @@
 #include "onb.h"
 struct hit_record;
 
+
+
 //schlick approximation, computes reflectivity of glass
 float schlick(float cosine, float ref_idx) {
     float r0 = (1-ref_idx) / (1+ref_idx);
@@ -107,7 +109,7 @@ class metal : public material {
     public:
         metal(const vec3& a, float f) : albedo(a) { if (f < 1) fuzz = f; else fuzz = 1; }
         //scatter according to metal reflection
-        virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) const  {
+        virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered,float& pdf) const  {
             vec3 reflected = reflect(unit_vector(r_in.direction()), rec.normal);
             scattered = ray(rec.p, reflected + fuzz*random_in_unit_sphere(), r_in.time());
 
@@ -122,7 +124,7 @@ class metal : public material {
 class dielectric : public material {
     public:
         dielectric(float ri) : ref_idx(ri) {}
-        virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) const  {
+        virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered,float& pdf) const  {
              vec3 outward_normal;
              vec3 reflected = reflect(r_in.direction(), rec.normal);
              float ni_over_nt;
